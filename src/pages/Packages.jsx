@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import axios from "axios";
 import {
@@ -56,8 +56,8 @@ const Packages = () => {
   const [showPickupModal, setShowPickupModal] = useState(false);
   const [currentPackage, setCurrentPackage] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
-  const [scanner, setScanner] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+  const scannerInstance = useRef(null);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -92,69 +92,76 @@ const Packages = () => {
   });
 
   const onScanSuccess = useCallback((decodedText) => {
-    // Prevent multiple triggers
     if (isScanning) return;
     setIsScanning(true);
 
-    // Stop the scanner first
-    if (scanner) {
-      scanner.clear();
-      setScanner(null);
+    if (scannerInstance.current) {
+      scannerInstance.current.clear();
+      scannerInstance.current = null;
     }
     
-    // Set the scanned text as search term
     setSearchTerm(decodedText);
-    setShowScanner(false); // Close the scanner modal
+    setShowScanner(false);
     toast.success("Barcode scanned successfully!");
-  }, [scanner, isScanning]);
+  }, [isScanning]);
 
   const onScanFailure = useCallback((error) => {
-    // Handle scan failure silently
     console.warn(`QR code scan error: ${error}`);
   }, []);
 
   useEffect(() => {
-    if (showScanner) {
-      const html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader",
-        { 
-          fps: 10,
-          qrbox: { width: 300, height: 300 },
-          aspectRatio: 1.0,
-          showTorchButtonIfSupported: true,
-          showZoomSliderIfSupported: true,
-          defaultZoomValueIfSupported: 1,
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E
-          ],
-          rememberLastUsedCamera: true,
-          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-          videoConstraints: {
-            facingMode: { ideal: "environment" },
-            width: { min: 640, ideal: 1280, max: 1920 },
-            height: { min: 480, ideal: 720, max: 1080 }
-          }
-        },
-        false
-      );
-      
-      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-      setScanner(html5QrcodeScanner);
-
-      return () => {
-        if (scanner) {
-          scanner.clear();
-        }
-        setIsScanning(false);
-      };
+    if (!showScanner) {
+      if (scannerInstance.current) {
+        scannerInstance.current.clear();
+        scannerInstance.current = null;
+      }
+      return;
     }
+
+    const scanner = new Html5QrcodeScanner(
+      "reader",
+      { 
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        showTorchButtonIfSupported: true,
+        showZoomSliderIfSupported: true,
+        defaultZoomValueIfSupported: 1,
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E
+        ],
+        rememberLastUsedCamera: true,
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+        videoConstraints: {
+          facingMode: { ideal: "environment" },
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 }
+        }
+      },
+      false
+    );
+
+    scannerInstance.current = scanner;
+    scanner.render(onScanSuccess, onScanFailure);
+
+    return () => {
+      if (scannerInstance.current) {
+        scannerInstance.current.clear();
+        scannerInstance.current = null;
+      }
+    };
   }, [showScanner, onScanSuccess, onScanFailure]);
+
+  const toggleScanner = useCallback(() => {
+    setShowScanner(prev => !prev);
+    setIsScanning(false);
+  }, []);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -258,14 +265,6 @@ const Packages = () => {
     locationFilter,
     dateRangeFilter,
   ]);
-
-  const toggleScanner = useCallback(() => {
-    setShowScanner(!showScanner);
-    setIsScanning(false); // Reset scanning state when toggling
-    if (scanner) {
-      scanner.clear();
-    }
-  }, [showScanner, scanner]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
