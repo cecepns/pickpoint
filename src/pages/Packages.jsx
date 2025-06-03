@@ -175,6 +175,7 @@ const Packages = () => {
   }, [showScanner, onScanSuccess, onScanFailure]);
 
   const toggleScanner = useCallback(() => {
+    setShowAddScanner(false);
     setShowScanner((prev) => !prev);
     setIsScanning(false);
   }, []);
@@ -681,7 +682,7 @@ const Packages = () => {
               <th>Recipient</th>
               <th>Received Time</th>
               <th>Pickup Time</th>
-              <th>Sender</th>
+              <th>Staff</th>
               <th>Location</th>
               <th>Status</th>
               <th>Price</th>
@@ -714,7 +715,7 @@ const Packages = () => {
                       ? format(new Date(pkg.pickedUpAt), "yyyy-MM-dd HH:mm")
                       : "-"}
                   </td>
-                  <td>{pkg.sender?.name}</td>
+                  <td>{pkg.receivedBy?.fullName}</td>
                   <td>{pkg.location.name}</td>
                   <td>
                     <span
@@ -865,6 +866,7 @@ const Packages = () => {
                         type="button"
                         className="btn-outline flex items-center gap-1 px-2 py-1 text-xs"
                         onClick={() => {
+                          setShowScanner(false);
                           setShowAddScanner(true);
                           setIsAddScanning(false);
                         }}
@@ -1439,6 +1441,41 @@ const Packages = () => {
                 </div>
                 <div className="flex flex-col items-center justify-center">
                   <div id="add-tracking-reader" className="w-full max-w-md mx-auto"></div>
+                  <p className="mt-4 text-sm text-gray-500 text-center">
+                    Position the barcode/QR code within the frame
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barcode Scanner Modal untuk Dashboard */}
+      {showScanner && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Scan Barcode/QR Code
+                  </h3>
+                  <button
+                    className="text-gray-400 hover:text-gray-500"
+                    onClick={toggleScanner}
+                  >
+                    <FaTimesCircle />
+                  </button>
+                </div>
+                <div className="flex flex-col items-center justify-center">
+                  <div id="reader" className="w-full max-w-md mx-auto"></div>
                   <p className="mt-4 text-sm text-gray-500 text-center">
                     Position the barcode/QR code within the frame
                   </p>
