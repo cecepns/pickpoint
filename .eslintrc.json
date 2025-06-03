@@ -1,0 +1,28 @@
+{
+  "env": {
+    "node": true,
+    "es6": true,
+    "commonjs": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:node/recommended"
+  ],
+  "plugins": [
+    "node"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2018,
+    "sourceType": "module"
+  },
+  "globals": {
+    "require": "readonly",
+    "module": "readonly",
+    "__dirname": "readonly",
+    "process": "readonly"
+  },
+  "rules": {
+    "no-console": "off",
+    "node/no-unsupported-features/es-syntax": "off"
+  }
+} 
