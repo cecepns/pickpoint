@@ -1,6 +1,6 @@
 // API URL configuration
-export const API_URL = import.meta.env.VITE_API_URL || 'http://api-pickpoint.isavralabel.com/api'
-export const BASE_URL_UPLOADS = import.meta.env.VITE_API_UPLOADS_URL || 'http://api-pickpoint.isavralabel.com'
+export const API_URL = import.meta.env.VITE_API_URL || 'https://api-pickpoint.isavralabel.com/api'
+export const BASE_URL_UPLOADS = import.meta.env.VITE_API_UPLOADS_URL || 'https://api-pickpoint.isavralabel.com'
 
 // Date format options
 export const DATE_FORMAT = 'yyyy-MM-dd'
