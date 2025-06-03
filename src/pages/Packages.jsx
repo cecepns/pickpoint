@@ -240,11 +240,11 @@ const Packages = () => {
     if (scanner) {
       scanner.clear();
       setScanner(null);
+      setShowScanner(false);
     }
     
     // Set the scanned text as search term
     setSearchTerm(decodedText);
-    setShowScanner(false);
     toast.success("Barcode scanned successfully!");
   };
 
