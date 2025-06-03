@@ -12,7 +12,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-hot-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats, Html5QrcodeScanType } from "html5-qrcode";
 import {
   FaPlus,
   FaSearch,
@@ -198,12 +198,12 @@ const Packages = () => {
       const html5QrcodeScanner = new Html5QrcodeScanner(
         "reader",
         { 
-          fps: 10, 
-          qrbox: { width: 250, height: 250 },
+          fps: 10,
+          qrbox: { width: 300, height: 300 },
           aspectRatio: 1.0,
           showTorchButtonIfSupported: true,
           showZoomSliderIfSupported: true,
-          defaultZoomValueIfSupported: 2,
+          defaultZoomValueIfSupported: 1,
           formatsToSupport: [
             Html5QrcodeSupportedFormats.QR_CODE,
             Html5QrcodeSupportedFormats.CODE_128,
@@ -212,7 +212,14 @@ const Packages = () => {
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E
-          ]
+          ],
+          rememberLastUsedCamera: true,
+          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+          videoConstraints: {
+            facingMode: { ideal: "environment" },
+            width: { min: 640, ideal: 1280, max: 1920 },
+            height: { min: 480, ideal: 720, max: 1080 }
+          }
         },
         false
       );
