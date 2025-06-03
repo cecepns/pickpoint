@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import axios from "axios";
 import {
@@ -235,30 +235,30 @@ const Packages = () => {
     }
   }, [showScanner]);
 
-  const onScanSuccess = (decodedText) => {
+  const onScanSuccess = useCallback((decodedText) => {
     // Stop the scanner first
     if (scanner) {
       scanner.clear();
       setScanner(null);
-      setShowScanner(false);
     }
     
     // Set the scanned text as search term
     setSearchTerm(decodedText);
+    setShowScanner(false); // Close the scanner modal
     toast.success("Barcode scanned successfully!");
-  };
+  }, [scanner]);
 
-  const onScanFailure = (error) => {
+  const onScanFailure = useCallback((error) => {
     // Handle scan failure silently
     console.warn(`QR code scan error: ${error}`);
-  };
+  }, []);
 
-  const toggleScanner = () => {
+  const toggleScanner = useCallback(() => {
     setShowScanner(!showScanner);
     if (scanner) {
       scanner.clear();
     }
-  };
+  }, [showScanner, scanner]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
