@@ -317,7 +317,7 @@ const StaffManagement = () => {
                   <td>{staffMember.packagesHandled}</td>
                   <td>{new Date(staffMember.createdAt).toLocaleDateString()}</td>
                   <td>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col md:flex-row gap-2">
                       <button 
                         className="p-1.5 text-gray-600 hover:text-primary-600 rounded-full hover:bg-gray-100"
                         onClick={() => handleEditClick(staffMember)}
@@ -359,7 +359,7 @@ const StaffManagement = () => {
           </select>
         </div>
         
-        <div className="flex space-x-2">
+        <div className="flex flex-col md:flex-row gap-2">
           <button 
             className="btn-outline px-3 py-1"
             disabled={page === 1}

@@ -190,7 +190,7 @@ const DashboardLayout = ({ children }) => {
         </aside>
         
         {/* Main content */}
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-3 md:p-4">
           {children}
         </main>
       </div>

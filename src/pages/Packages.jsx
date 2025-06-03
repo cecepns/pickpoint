@@ -12,7 +12,11 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-hot-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats, Html5QrcodeScanType } from "html5-qrcode";
+import {
+  Html5QrcodeScanner,
+  Html5QrcodeSupportedFormats,
+  Html5QrcodeScanType,
+} from "html5-qrcode";
 import {
   FaPlus,
   FaSearch,
@@ -23,6 +27,7 @@ import {
   FaBarcode,
   FaCamera,
   FaQrcode,
+  FaTrash,
 } from "react-icons/fa";
 
 // Add global styles for the scanner
@@ -34,6 +39,11 @@ const scannerStyles = `
     align-items: center !important;
   }
   
+  #add-tracking-reader__scan_region {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
 `;
 
 const Packages = () => {
@@ -78,7 +88,6 @@ const Packages = () => {
     recipientName: "",
     recipientPhone: "",
     recipientUnit: "",
-    senderName: "",
     carrierName: "",
     packageDescription: "",
     locationId: "",
@@ -91,19 +100,26 @@ const Packages = () => {
     notes: "",
   });
 
-  const onScanSuccess = useCallback((decodedText) => {
-    if (isScanning) return;
-    setIsScanning(true);
+  const [showAddScanner, setShowAddScanner] = useState(false);
+  const [isAddScanning, setIsAddScanning] = useState(false);
+  const addScannerInstance = useRef(null);
 
-    if (scannerInstance.current) {
-      scannerInstance.current.clear();
-      scannerInstance.current = null;
-    }
-    
-    setSearchTerm(decodedText);
-    setShowScanner(false);
-    toast.success("Barcode scanned successfully!");
-  }, [isScanning]);
+  const onScanSuccess = useCallback(
+    (decodedText) => {
+      if (isScanning) return;
+      setIsScanning(true);
+
+      if (scannerInstance.current) {
+        scannerInstance.current.clear();
+        scannerInstance.current = null;
+      }
+
+      setSearchTerm(decodedText);
+      setShowScanner(false);
+      toast.success("Barcode scanned successfully!");
+    },
+    [isScanning]
+  );
 
   const onScanFailure = useCallback((error) => {
     console.warn(`QR code scan error: ${error}`);
@@ -120,7 +136,7 @@ const Packages = () => {
 
     const scanner = new Html5QrcodeScanner(
       "reader",
-      { 
+      {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
@@ -134,15 +150,15 @@ const Packages = () => {
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
           Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E
+          Html5QrcodeSupportedFormats.UPC_E,
         ],
         rememberLastUsedCamera: true,
         supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
         videoConstraints: {
           facingMode: { ideal: "environment" },
           width: { min: 640, ideal: 1280, max: 1920 },
-          height: { min: 480, ideal: 720, max: 1080 }
-        }
+          height: { min: 480, ideal: 720, max: 1080 },
+        },
       },
       false
     );
@@ -159,7 +175,7 @@ const Packages = () => {
   }, [showScanner, onScanSuccess, onScanFailure]);
 
   const toggleScanner = useCallback(() => {
-    setShowScanner(prev => !prev);
+    setShowScanner((prev) => !prev);
     setIsScanning(false);
   }, []);
 
@@ -291,7 +307,6 @@ const Packages = () => {
       recipientName: "",
       recipientPhone: "",
       recipientUnit: "",
-      senderName: "",
       carrierName: "",
       packageDescription: "",
       locationId: user?.role === "staff" ? user.locationId : "",
@@ -336,11 +351,6 @@ const Packages = () => {
         }
       } else if (!newPackage.recipientId) {
         toast.error("Please select a recipient");
-        return;
-      }
-
-      if (!newPackage.senderName) {
-        toast.error("Please enter sender name");
         return;
       }
 
@@ -463,9 +473,97 @@ const Packages = () => {
     }
   };
 
+  // Delete package handler
+  const handleDeletePackage = async (pkg) => {
+    if (!window.confirm(`Delete package ${pkg.trackingNumber}? This action cannot be undone.`)) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_URL}/packages/${pkg.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Package deleted successfully");
+      // Refresh packages list
+      const response = await axios.get(`${API_URL}/packages`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { page, limit },
+      });
+      setPackages(response.data.packages);
+      setTotalPages(response.data.totalPages);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete package");
+    }
+  };
+
+  // Handler scan success untuk Add Package
+  const onAddScanSuccess = useCallback(
+    (decodedText) => {
+      if (isAddScanning) return;
+      setIsAddScanning(true);
+      if (addScannerInstance.current) {
+        addScannerInstance.current.clear();
+        addScannerInstance.current = null;
+      }
+      setNewPackage((prev) => ({ ...prev, trackingNumber: decodedText }));
+      setShowAddScanner(false);
+      toast.success("Barcode scanned successfully!");
+    },
+    [isAddScanning]
+  );
+
+  const onAddScanFailure = useCallback((error) => {
+    // Optional: bisa tampilkan warning
+    // console.warn(`QR code scan error: ${error}`);
+  }, []);
+
+  useEffect(() => {
+    if (!showAddScanner) {
+      if (addScannerInstance.current) {
+        addScannerInstance.current.clear();
+        addScannerInstance.current = null;
+      }
+      return;
+    }
+    const scanner = new Html5QrcodeScanner(
+      "add-tracking-reader",
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        showTorchButtonIfSupported: true,
+        showZoomSliderIfSupported: true,
+        defaultZoomValueIfSupported: 1,
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+        ],
+        rememberLastUsedCamera: true,
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+        videoConstraints: {
+          facingMode: { ideal: "environment" },
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 },
+        },
+      },
+      false
+    );
+    addScannerInstance.current = scanner;
+    scanner.render(onAddScanSuccess, onAddScanFailure);
+    return () => {
+      if (addScannerInstance.current) {
+        addScannerInstance.current.clear();
+        addScannerInstance.current = null;
+      }
+    };
+  }, [showAddScanner, onAddScanSuccess, onAddScanFailure]);
+
   useEffect(() => {
     // Add styles to document
-    const styleElement = document.createElement('style');
+    const styleElement = document.createElement("style");
     styleElement.textContent = scannerStyles;
     document.head.appendChild(styleElement);
 
@@ -486,18 +584,27 @@ const Packages = () => {
             Manage all incoming and outgoing packages
           </p>
         </div>
-        <button
-          className="btn-primary mt-3 sm:mt-0"
-          onClick={() => setShowAddModal(true)}
-        >
-          <FaPlus className="mr-2" />
-          Add New Package
-        </button>
+        <div className="flex md:gap-2 flex-col md:flex-row">
+          <button
+            className="btn-primary mt-3 sm:mt-0 gap-1"
+            onClick={toggleScanner}
+          >
+            <FaBarcode />
+            Scan Barcode
+          </button>
+          <button
+            className="btn-primary mt-3 sm:mt-0"
+            onClick={() => setShowAddModal(true)}
+          >
+            <FaPlus className="mr-2" />
+            Add New Package
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white p-2 rounded-lg shadow-sm mb-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search with Barcode Scanner */}
           <div>
             <label className="form-label">Search</label>
@@ -535,25 +642,6 @@ const Packages = () => {
             </div>
           </div>
 
-          {/* Location filter (admin only) */}
-          {user?.role === "admin" && (
-            <div>
-              <label className="form-label">Location</label>
-              <select
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="input"
-              >
-                <option value="">All Locations</option>
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           {/* Date range filter */}
           <div>
             <label className="form-label">Received Date</label>
@@ -571,7 +659,10 @@ const Packages = () => {
         </div>
       </div>
 
-      <div onClick={toggleScanner} className=" cursor-pointer flex items-center p-2 justify-between bg-white rounded-lg shadow-sm mb-6 max-w-32">
+      {/* <div
+        onClick={toggleScanner}
+        className="cursor-pointer flex items-center p-2 justify-between bg-white rounded-lg shadow-sm mb-6 max-w-32"
+      >
         <label>Scan</label>
         <div
           className="flex items-center text-gray-400 hover:text-gray-600"
@@ -579,7 +670,7 @@ const Packages = () => {
         >
           <FaBarcode />
         </div>
-      </div>
+      </div> */}
 
       {/* Packages Table */}
       <div className="table-container">
@@ -587,9 +678,7 @@ const Packages = () => {
           <thead>
             <tr>
               <th>Tracking #</th>
-              <th>QR Code</th>
               <th>Recipient</th>
-              <th>Phone</th>
               <th>Received Time</th>
               <th>Pickup Time</th>
               <th>Sender</th>
@@ -602,13 +691,13 @@ const Packages = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="11" className="text-center py-4">
+                <td colSpan="9" className="text-center py-4">
                   <FaSpinner className="animate-spin mx-auto text-primary-500 text-xl" />
                 </td>
               </tr>
             ) : packages.length === 0 ? (
               <tr>
-                <td colSpan="11" className="text-center py-4 text-gray-500">
+                <td colSpan="9" className="text-center py-4 text-gray-500">
                   No packages found
                 </td>
               </tr>
@@ -616,21 +705,7 @@ const Packages = () => {
               packages.map((pkg) => (
                 <tr key={pkg.id}>
                   <td>{pkg.trackingNumber}</td>
-                  <td>
-                    {pkg.qrCodeUrl ? (
-                      <img
-                        src={`${BASE_URL_UPLOADS}${pkg.qrCodeUrl}`}
-                        alt="QR Code"
-                        className="w-12 h-12 object-contain"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-100 flex items-center justify-center">
-                        <FaQrcode className="text-gray-400" />
-                      </div>
-                    )}
-                  </td>
                   <td>{pkg.recipient.name}</td>
-                  <td>{pkg.recipient.phone}</td>
                   <td>
                     {format(new Date(pkg.receivedAt), "yyyy-MM-dd HH:mm")}
                   </td>
@@ -639,7 +714,7 @@ const Packages = () => {
                       ? format(new Date(pkg.pickedUpAt), "yyyy-MM-dd HH:mm")
                       : "-"}
                   </td>
-                  <td>{pkg.sender.name}</td>
+                  <td>{pkg.sender?.name}</td>
                   <td>{pkg.location.name}</td>
                   <td>
                     <span
@@ -660,7 +735,7 @@ const Packages = () => {
                   </td>
                   <td>Rp {pkg.price.toLocaleString()}</td>
                   <td>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col md:flex-row gap-2">
                       <button
                         className="p-1.5 text-gray-600 hover:text-primary-600 rounded-full hover:bg-gray-100"
                         onClick={() => handleViewPackage(pkg)}
@@ -686,6 +761,16 @@ const Packages = () => {
                           title="Resend Notification"
                         >
                           <FaBarcode size={14} />
+                        </button>
+                      )}
+
+                      {pkg.status === PACKAGE_STATUS.STORED && (
+                        <button
+                          className="p-1.5 text-gray-600 hover:text-red-600 rounded-full hover:bg-gray-100"
+                          onClick={() => handleDeletePackage(pkg)}
+                          title="Delete Package"
+                        >
+                          <FaTrash size={14} />
                         </button>
                       )}
                     </div>
@@ -715,7 +800,7 @@ const Packages = () => {
           </select>
         </div>
 
-        <div className="flex space-x-2">
+        <div className="flex flex-col md:flex-row gap-2">
           <button
             className="btn-outline px-3 py-1"
             disabled={page === 1}
@@ -762,19 +847,32 @@ const Packages = () => {
                 </div>
 
                 <div className="mt-2 space-y-4">
-                  {/* Tracking Number without QR Code */}
+                  {/* Tracking Number tanpa QR Code */}
                   <div className="form-group">
                     <label className="form-label" htmlFor="trackingNumber">
                       Tracking Number *
                     </label>
-                    <input
-                      type="text"
-                      id="trackingNumber"
-                      name="trackingNumber"
-                      value={newPackage.trackingNumber}
-                      onChange={handleInputChange}
-                      className="input"
-                    />
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        id="trackingNumber"
+                        name="trackingNumber"
+                        value={newPackage.trackingNumber}
+                        onChange={handleInputChange}
+                        className="input"
+                      />
+                      <button
+                        type="button"
+                        className="btn-outline flex items-center gap-1 px-2 py-1 text-xs"
+                        onClick={() => {
+                          setShowAddScanner(true);
+                          setIsAddScanning(false);
+                        }}
+                        title="Scan Barcode"
+                      >
+                        <FaBarcode /> Scan
+                      </button>
+                    </div>
                   </div>
 
                   {/* Package Image */}
@@ -782,7 +880,7 @@ const Packages = () => {
                     <label className="form-label" htmlFor="packageImage">
                       Package Image
                     </label>
-                    <div className="mt-1 flex items-center space-x-4 flex-wrap gap-3">
+                    <div className="mt-1 flex md:items-center flex-col md:flex-row gap-3">
                       <label className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
                         <FaCamera className="mr-2" />
                         Upload Image
@@ -909,21 +1007,6 @@ const Packages = () => {
                       </div>
                     </>
                   )}
-
-                  {/* Sender Information */}
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="senderName">
-                      Sender Name *
-                    </label>
-                    <input
-                      type="text"
-                      id="senderName"
-                      name="senderName"
-                      value={newPackage.senderName}
-                      onChange={handleInputChange}
-                      className="input"
-                    />
-                  </div>
 
                   {/* Carrier */}
                   <div className="form-group">
@@ -1331,8 +1414,8 @@ const Packages = () => {
         </div>
       )}
 
-      {/* Barcode Scanner Modal */}
-      {showScanner && (
+      {/* Barcode Scanner Modal untuk Add Package */}
+      {showAddScanner && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div
@@ -1341,22 +1424,21 @@ const Packages = () => {
             >
               <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
-
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">
-                    Scan Barcode/QR Code
+                    Scan Barcode/QR Code for Tracking Number
                   </h3>
                   <button
                     className="text-gray-400 hover:text-gray-500"
-                    onClick={toggleScanner}
+                    onClick={() => setShowAddScanner(false)}
                   >
                     <FaTimesCircle />
                   </button>
                 </div>
                 <div className="flex flex-col items-center justify-center">
-                  <div id="reader" className="w-full max-w-md mx-auto"></div>
+                  <div id="add-tracking-reader" className="w-full max-w-md mx-auto"></div>
                   <p className="mt-4 text-sm text-gray-500 text-center">
                     Position the barcode/QR code within the frame
                   </p>

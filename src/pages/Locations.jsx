@@ -251,7 +251,7 @@ const Locations = () => {
                   <td>{location.packageCount}</td>
                   <td>Rp {location.defaultPrice.toLocaleString()}</td>
                   <td>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col md:flex-row gap-2">
                       <button 
                         className="p-1.5 text-gray-600 hover:text-primary-600 rounded-full hover:bg-gray-100"
                         onClick={() => handleEditClick(location)}
