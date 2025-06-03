@@ -236,12 +236,15 @@ const Packages = () => {
   }, [showScanner]);
 
   const onScanSuccess = (decodedText) => {
+    // Stop the scanner first
+    if (scanner) {
+      scanner.clear();
+      setScanner(null);
+    }
+    
     // Set the scanned text as search term
     setSearchTerm(decodedText);
     setShowScanner(false);
-    if (scanner) {
-      scanner.clear();
-    }
     toast.success("Barcode scanned successfully!");
   };
 
