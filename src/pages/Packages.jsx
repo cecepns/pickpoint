@@ -91,6 +91,71 @@ const Packages = () => {
     notes: "",
   });
 
+  const onScanSuccess = useCallback((decodedText) => {
+    // Prevent multiple triggers
+    if (isScanning) return;
+    setIsScanning(true);
+
+    // Stop the scanner first
+    if (scanner) {
+      scanner.clear();
+      setScanner(null);
+    }
+    
+    // Set the scanned text as search term
+    setSearchTerm(decodedText);
+    setShowScanner(false); // Close the scanner modal
+    toast.success("Barcode scanned successfully!");
+  }, [scanner, isScanning]);
+
+  const onScanFailure = useCallback((error) => {
+    // Handle scan failure silently
+    console.warn(`QR code scan error: ${error}`);
+  }, []);
+
+  useEffect(() => {
+    if (showScanner) {
+      const html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        { 
+          fps: 10,
+          qrbox: { width: 300, height: 300 },
+          aspectRatio: 1.0,
+          showTorchButtonIfSupported: true,
+          showZoomSliderIfSupported: true,
+          defaultZoomValueIfSupported: 1,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E
+          ],
+          rememberLastUsedCamera: true,
+          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+          videoConstraints: {
+            facingMode: { ideal: "environment" },
+            width: { min: 640, ideal: 1280, max: 1920 },
+            height: { min: 480, ideal: 720, max: 1080 }
+          }
+        },
+        false
+      );
+      
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+      setScanner(html5QrcodeScanner);
+
+      return () => {
+        if (scanner) {
+          scanner.clear();
+        }
+        setIsScanning(false);
+      };
+    }
+  }, [showScanner, onScanSuccess, onScanFailure]);
+
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -193,71 +258,6 @@ const Packages = () => {
     locationFilter,
     dateRangeFilter,
   ]);
-
-  useEffect(() => {
-    if (showScanner) {
-      const html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader",
-        { 
-          fps: 10,
-          qrbox: { width: 300, height: 300 },
-          aspectRatio: 1.0,
-          showTorchButtonIfSupported: true,
-          showZoomSliderIfSupported: true,
-          defaultZoomValueIfSupported: 1,
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E
-          ],
-          rememberLastUsedCamera: true,
-          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-          videoConstraints: {
-            facingMode: { ideal: "environment" },
-            width: { min: 640, ideal: 1280, max: 1920 },
-            height: { min: 480, ideal: 720, max: 1080 }
-          }
-        },
-        false
-      );
-      
-      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-      setScanner(html5QrcodeScanner);
-
-      return () => {
-        if (scanner) {
-          scanner.clear();
-        }
-        setIsScanning(false);
-      };
-    }
-  }, [showScanner, onScanSuccess, onScanFailure]);
-
-  const onScanSuccess = useCallback((decodedText) => {
-    // Prevent multiple triggers
-    if (isScanning) return;
-    setIsScanning(true);
-
-    // Stop the scanner first
-    if (scanner) {
-      scanner.clear();
-      setScanner(null);
-    }
-    
-    // Set the scanned text as search term
-    setSearchTerm(decodedText);
-    setShowScanner(false); // Close the scanner modal
-    toast.success("Barcode scanned successfully!");
-  }, [scanner, isScanning]);
-
-  const onScanFailure = useCallback((error) => {
-    // Handle scan failure silently
-    console.warn(`QR code scan error: ${error}`);
-  }, []);
 
   const toggleScanner = useCallback(() => {
     setShowScanner(!showScanner);
@@ -783,7 +783,7 @@ const Packages = () => {
                     <label className="form-label" htmlFor="packageImage">
                       Package Image
                     </label>
-                    <div className="mt-1 flex items-center space-x-4">
+                    <div className="mt-1 flex items-center space-x-4 flex-wrap gap-3">
                       <label className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
                         <FaCamera className="mr-2" />
                         Upload Image
@@ -987,7 +987,7 @@ const Packages = () => {
                 </div>
               </div>
 
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
                 <button
                   type="button"
                   className="btn-primary sm:ml-2"
