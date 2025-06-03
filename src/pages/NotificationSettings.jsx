@@ -219,7 +219,7 @@ const NotificationSettings = () => {
         {/* Template Selection and Editor */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white p-4 rounded-lg shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+            {/* <div className="hidden flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
               <div>
                 <h2 className="text-lg font-semibold">Template Editor</h2>
                 <p className="text-sm text-gray-500">Create or edit notification templates</p>
@@ -230,7 +230,7 @@ const NotificationSettings = () => {
               >
                 Create New Template
               </button>
-            </div>
+            </div> */}
             
             {/* Template Selection */}
             <div className="mb-4">
