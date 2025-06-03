@@ -57,6 +57,7 @@ const Packages = () => {
   const [currentPackage, setCurrentPackage] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
   const [scanner, setScanner] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -231,11 +232,16 @@ const Packages = () => {
         if (scanner) {
           scanner.clear();
         }
+        setIsScanning(false);
       };
     }
-  }, [showScanner]);
+  }, [showScanner, onScanSuccess, onScanFailure]);
 
   const onScanSuccess = useCallback((decodedText) => {
+    // Prevent multiple triggers
+    if (isScanning) return;
+    setIsScanning(true);
+
     // Stop the scanner first
     if (scanner) {
       scanner.clear();
@@ -246,7 +252,7 @@ const Packages = () => {
     setSearchTerm(decodedText);
     setShowScanner(false); // Close the scanner modal
     toast.success("Barcode scanned successfully!");
-  }, [scanner]);
+  }, [scanner, isScanning]);
 
   const onScanFailure = useCallback((error) => {
     // Handle scan failure silently
@@ -255,6 +261,7 @@ const Packages = () => {
 
   const toggleScanner = useCallback(() => {
     setShowScanner(!showScanner);
+    setIsScanning(false); // Reset scanning state when toggling
     if (scanner) {
       scanner.clear();
     }
